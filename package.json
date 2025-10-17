@@ -19,7 +19,9 @@
     "proto:gen:ts": "protoc --plugin=protoc-gen-ts=./node_modules/.bin/protoc-gen-ts --js_out=import_style=commonjs,binary:./apps/web/lib/grpc --ts_out=./apps/web/lib/grpc packages/proto/service.proto"
   },
   "devDependencies": {
+    "@grpc/proto-loader": "^0.7.15",
     "@turbo/gen": "^1.12.4",
+    "grpc-tools": "^1.13.0",
     "prettier": "^3.2.5",
     "turbo": "^1.12.4"
   },

@@ -5,10 +5,13 @@
  *
  * These actions wrap gRPC calls to the SchemaService, providing a clean
  * interface for the Next.js frontend to interact with the schema management system.
- *
- * Note: For now, we're using a simplified approach with fetch to the Go HTTP API.
- * In the future, this can be enhanced to use the gRPC client directly.
  */
+
+import { schemaService } from '@/lib/grpc/schema-client'
+import type {
+  CreateTableRequestProto,
+  ColumnDefinitionProto
+} from '@/lib/grpc/schema-client'
 
 // Type definitions matching the backend schema
 export type DataType =
@@ -75,76 +78,37 @@ interface ApiResponse<T> {
   error?: string
 }
 
-// For now, we'll create a mock implementation that simulates the API
-// Once the Go HTTP endpoints are added, we can replace these with actual fetch calls
-
-const MOCK_DATA_TYPES: DataTypeInfo[] = [
-  {
-    type: 'text',
-    display_name: 'Text (Short)',
-    description: 'Short text up to 255 characters (names, codes, descriptions)',
-    postgres_type: 'VARCHAR(255)'
-  },
-  {
-    type: 'text_long',
-    display_name: 'Text (Long)',
-    description: 'Long text with no length limit (notes, detailed descriptions)',
-    postgres_type: 'TEXT'
-  },
-  {
-    type: 'number',
-    display_name: 'Number (Integer)',
-    description: 'Whole numbers without decimals (quantities, IDs, counts)',
-    postgres_type: 'INTEGER'
-  },
-  {
-    type: 'decimal',
-    display_name: 'Number (Decimal)',
-    description: 'Numbers with up to 8 decimal places (prices, percentages, measurements)',
-    postgres_type: 'DECIMAL(18,8)'
-  },
-  {
-    type: 'boolean',
-    display_name: 'True/False',
-    description: 'Yes/No, True/False, On/Off values',
-    postgres_type: 'BOOLEAN'
-  },
-  {
-    type: 'date',
-    display_name: 'Date & Time',
-    description: 'Dates and times with timezone support',
-    postgres_type: 'TIMESTAMPTZ'
-  },
-  {
-    type: 'json',
-    display_name: 'JSON Data',
-    description: 'Flexible structured data in JSON format',
-    postgres_type: 'JSONB'
-  },
-  {
-    type: 'relation',
-    display_name: 'Relationship',
-    description: 'Link to another table (foreign key relationship)',
-    postgres_type: 'INTEGER'
-  }
-]
-
 /**
  * Get all available data types with descriptions
  */
 export async function getDataTypes(): Promise<ApiResponse<DataTypeInfo[]>> {
   try {
-    // TODO: Replace with actual gRPC/HTTP call
-    // For now, return mock data
+    const response = await schemaService.getDataTypes({})
+
+    if (!response.success) {
+      return {
+        success: false,
+        error: 'Failed to retrieve data types'
+      }
+    }
+
+    // Map protobuf response to our type
+    const dataTypes: DataTypeInfo[] = response.data_types.map((dt) => ({
+      type: dt.type as DataType,
+      display_name: dt.display_name,
+      description: dt.description,
+      postgres_type: dt.postgres_type
+    }))
+
     return {
       success: true,
-      data: MOCK_DATA_TYPES
+      data: dataTypes
     }
   } catch (error) {
     console.error('Failed to get data types:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Failed to connect to backend service'
     }
   }
 }
@@ -199,41 +163,70 @@ export async function createTable(
       }
     }
 
-    // TODO: Replace with actual gRPC call
-    // const response = await grpcClient.createTable(request)
-
-    // For now, simulate a successful response
-    const mockResponse: TableDefinition = {
-      id: Math.floor(Math.random() * 1000),
+    // Convert to protobuf format
+    const protoRequest: CreateTableRequestProto = {
       name: request.name,
-      table_name: `user_table_${request.name.toLowerCase().replace(/\s+/g, '_')}`,
       description: request.description,
-      columns: request.columns.map((col, index) => ({
-        id: index + 1,
+      columns: request.columns.map((col): ColumnDefinitionProto => ({
         name: col.name,
-        column_name: col.name.toLowerCase().replace(/\s+/g, '_'),
         data_type: col.data_type,
-        postgres_type: getPostgresType(col.data_type),
         is_nullable: col.is_nullable ?? true,
         is_unique: col.is_unique ?? false,
         default_value: col.default_value,
+        foreign_key_to_table_id: col.foreign_key_to_table_id
+      }))
+    }
+
+    // Call gRPC service
+    const response = await schemaService.createTable(protoRequest)
+
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.message || 'Failed to create table'
+      }
+    }
+
+    if (!response.table) {
+      return {
+        success: false,
+        error: 'No table returned from server'
+      }
+    }
+
+    // Map protobuf response to our type
+    const table: TableDefinition = {
+      id: response.table.id,
+      name: response.table.name,
+      table_name: response.table.table_name,
+      description: response.table.description,
+      columns: response.table.columns.map((col) => ({
+        id: col.id,
+        name: col.name,
+        column_name: col.column_name,
+        data_type: col.data_type as DataType,
+        postgres_type: col.postgres_type,
+        is_nullable: col.is_nullable,
+        is_unique: col.is_unique,
+        default_value: col.default_value,
         foreign_key_to_table_id: col.foreign_key_to_table_id,
-        display_order: index
+        foreign_key_to_table_name: col.foreign_key_to_table_name,
+        display_order: col.display_order
       })),
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      created_at: response.table.created_at,
+      updated_at: response.table.updated_at
     }
 
     return {
       success: true,
-      message: `Table "${request.name}" created successfully`,
-      data: mockResponse
+      message: response.message || `Table "${request.name}" created successfully`,
+      data: table
     }
   } catch (error) {
     console.error('Failed to create table:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Failed to connect to backend service'
     }
   }
 }
@@ -250,18 +243,54 @@ export async function getTable(tableId: number): Promise<ApiResponse<TableDefini
       }
     }
 
-    // TODO: Replace with actual gRPC call
-    // const response = await grpcClient.getTable({ table_id: tableId })
+    const response = await schemaService.getTable({ table_id: tableId })
+
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.message || 'Failed to get table'
+      }
+    }
+
+    if (!response.table) {
+      return {
+        success: false,
+        error: 'Table not found'
+      }
+    }
+
+    // Map protobuf response to our type
+    const table: TableDefinition = {
+      id: response.table.id,
+      name: response.table.name,
+      table_name: response.table.table_name,
+      description: response.table.description,
+      columns: response.table.columns.map((col) => ({
+        id: col.id,
+        name: col.name,
+        column_name: col.column_name,
+        data_type: col.data_type as DataType,
+        postgres_type: col.postgres_type,
+        is_nullable: col.is_nullable,
+        is_unique: col.is_unique,
+        default_value: col.default_value,
+        foreign_key_to_table_id: col.foreign_key_to_table_id,
+        foreign_key_to_table_name: col.foreign_key_to_table_name,
+        display_order: col.display_order
+      })),
+      created_at: response.table.created_at,
+      updated_at: response.table.updated_at
+    }
 
     return {
-      success: false,
-      error: 'Table not found (mock implementation)'
+      success: true,
+      data: table
     }
   } catch (error) {
     console.error('Failed to get table:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Failed to connect to backend service'
     }
   }
 }
@@ -271,20 +300,48 @@ export async function getTable(tableId: number): Promise<ApiResponse<TableDefini
  */
 export async function listTables(): Promise<ApiResponse<TableDefinition[]>> {
   try {
-    // TODO: Replace with actual gRPC call
-    // const response = await grpcClient.listTables({})
+    const response = await schemaService.listTables({})
 
-    // For now, return empty array
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.message || 'Failed to list tables'
+      }
+    }
+
+    // Map protobuf response to our type
+    const tables: TableDefinition[] = response.tables.map((table) => ({
+      id: table.id,
+      name: table.name,
+      table_name: table.table_name,
+      description: table.description,
+      columns: table.columns.map((col) => ({
+        id: col.id,
+        name: col.name,
+        column_name: col.column_name,
+        data_type: col.data_type as DataType,
+        postgres_type: col.postgres_type,
+        is_nullable: col.is_nullable,
+        is_unique: col.is_unique,
+        default_value: col.default_value,
+        foreign_key_to_table_id: col.foreign_key_to_table_id,
+        foreign_key_to_table_name: col.foreign_key_to_table_name,
+        display_order: col.display_order
+      })),
+      created_at: table.created_at,
+      updated_at: table.updated_at
+    }))
+
     return {
       success: true,
-      data: [],
-      message: 'No tables found (mock implementation)'
+      data: tables,
+      message: response.message
     }
   } catch (error) {
     console.error('Failed to list tables:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Failed to connect to backend service'
     }
   }
 }
@@ -301,33 +358,18 @@ export async function deleteTable(tableId: number): Promise<ApiResponse<void>> {
       }
     }
 
-    // TODO: Replace with actual gRPC call
-    // const response = await grpcClient.deleteTable({ table_id: tableId })
+    const response = await schemaService.deleteTable({ table_id: tableId })
 
     return {
-      success: false,
-      error: 'Table deletion not yet implemented'
+      success: response.success,
+      message: response.message,
+      error: response.success ? undefined : response.message
     }
   } catch (error) {
     console.error('Failed to delete table:', error)
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Failed to connect to backend service'
     }
   }
-}
-
-// Helper function to map data types to PostgreSQL types
-function getPostgresType(dataType: DataType): string {
-  const mapping: Record<DataType, string> = {
-    text: 'VARCHAR(255)',
-    text_long: 'TEXT',
-    number: 'INTEGER',
-    decimal: 'DECIMAL(18,8)',
-    boolean: 'BOOLEAN',
-    date: 'TIMESTAMPTZ',
-    json: 'JSONB',
-    relation: 'INTEGER'
-  }
-  return mapping[dataType] || 'TEXT'
 }
