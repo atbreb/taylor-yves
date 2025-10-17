@@ -9,6 +9,8 @@ import {
   exportGroups,
   importGroups
 } from './actions'
+import { exportToEnvFile } from './export-actions'
+import { reloadDatabaseConnection } from './reload-actions'
 import {
   Stack,
   Title,
@@ -43,8 +45,11 @@ import {
   IconPlus,
   IconTrash,
   IconDatabase,
-  IconSearch
+  IconSearch,
+  IconFileExport
 } from '@tabler/icons-react'
+import { RailwaySync } from '@/components/environment/RailwaySync'
+import { DatabaseStatus } from '@/components/environment/DatabaseStatus'
 
 interface EnvironmentVariable {
   id: string
@@ -80,6 +85,9 @@ export default function EnvironmentPage() {
   const [addGroupModalOpen, setAddGroupModalOpen] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [exporting, setExporting] = useState(false)
+  const [dbStatus, setDbStatus] = useState<'connected' | 'disconnected' | 'unknown' | 'testing'>('unknown')
+  const [dbStatusMessage, setDbStatusMessage] = useState<string>('')
 
   useEffect(() => {
     loadGroups()
@@ -108,12 +116,65 @@ export default function EnvironmentPage() {
     }
   }
 
+  const testDatabaseConnection = async (connectionString: string) => {
+    try {
+      const response = await fetch('/api/test-db', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ connectionString })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setDbStatus('connected')
+        setDbStatusMessage(result.message || 'Database connected successfully')
+      } else {
+        setDbStatus('disconnected')
+        setDbStatusMessage(result.message || 'Connection failed')
+      }
+    } catch (error) {
+      setDbStatus('disconnected')
+      setDbStatusMessage('Failed to test connection')
+    }
+  }
+
   const handleSave = async () => {
     setSaving(true)
     setMessage(null)
     try {
       await saveEnvironmentGroups(groups)
       setMessage({ type: 'success', text: 'Environment variables saved successfully' })
+
+      // Check if DATABASE_URL_POOLED is set
+      const dbGroup = groups.find(g => g.id === 'database')
+      const pooledUrl = dbGroup?.variables.find(v => v.key === 'DATABASE_URL_POOLED')?.value
+
+      if (pooledUrl) {
+        setDbStatus('testing')
+
+        // First test the connection from the frontend
+        await testDatabaseConnection(pooledUrl)
+
+        // Then reload the database connection on the Go server (hot-reload)
+        try {
+          const reloadResult = await reloadDatabaseConnection()
+          if (reloadResult.success) {
+            console.log('✅ Go server database reloaded:', reloadResult.message)
+            if (reloadResult.databaseInfo) {
+              setDbStatusMessage(`Connected: ${reloadResult.databaseInfo}`)
+            }
+          } else {
+            console.warn('⚠️ Failed to reload Go server database:', reloadResult.message)
+          }
+        } catch (reloadError) {
+          console.error('Failed to reload database on Go server:', reloadError)
+          // Don't fail the save operation if reload fails - database might not be configured yet
+        }
+      } else {
+        setDbStatus('unknown')
+        setDbStatusMessage('')
+      }
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to save environment variables' })
     } finally {
@@ -199,29 +260,6 @@ export default function EnvironmentPage() {
     setShowValues(prev => ({ ...prev, [varId]: !prev[varId] }))
   }
 
-  const testDatabaseConnection = async (groupId: string) => {
-    const group = groups.find(g => g.id === groupId)
-    if (!group) return
-
-    const pooledUrl = group.variables.find(v => v.key === 'DATABASE_URL_POOLED')?.value
-    const directUrl = group.variables.find(v => v.key === 'DATABASE_URL_DIRECT')?.value
-
-    if (!pooledUrl && !directUrl) {
-      setMessage({ type: 'error', text: 'No database URL found in this group' })
-      return
-    }
-
-    try {
-      const result = await testConnection(pooledUrl || directUrl || '')
-      setMessage({
-        type: result.success ? 'success' : 'error',
-        text: result.message
-      })
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to test connection' })
-    }
-  }
-
   const handleExport = async () => {
     try {
       const exported = await exportGroups(groups)
@@ -248,6 +286,22 @@ export default function EnvironmentPage() {
       setMessage({ type: 'success', text: 'Environment variables imported successfully' })
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to import environment variables' })
+    }
+  }
+
+  const handleExportToEnv = async () => {
+    setExporting(true)
+    setMessage(null)
+    try {
+      const result = await exportToEnvFile()
+      setMessage({
+        type: result.success ? 'success' : 'error',
+        text: result.message
+      })
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to export to .env file' })
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -288,6 +342,9 @@ export default function EnvironmentPage() {
           {message.text}
         </Alert>
       )}
+
+      {/* Railway Sync Integration */}
+      <RailwaySync />
 
       {/* Mobile Group Selector */}
       <Box hiddenFrom="lg">
@@ -388,13 +445,7 @@ export default function EnvironmentPage() {
                     </div>
                   </Group>
                   {currentGroup.id === 'database' && (
-                    <Button
-                      variant="light"
-                      leftSection={<IconDatabase size={16} />}
-                      onClick={() => testDatabaseConnection(currentGroup.id)}
-                    >
-                      Test Connection
-                    </Button>
+                    <DatabaseStatus status={dbStatus} message={dbStatusMessage} />
                   )}
                 </Group>
 
@@ -500,13 +551,25 @@ export default function EnvironmentPage() {
         </Grid.Col>
       </Grid>
 
-      <Group justify="flex-end">
-        <Button variant="default" onClick={loadGroups}>
-          Reset
+      <Group justify="space-between">
+        <Button
+          variant="light"
+          color="blue"
+          leftSection={<IconFileExport size={16} />}
+          onClick={handleExportToEnv}
+          loading={exporting}
+        >
+          Export to .env File
         </Button>
-        <Button onClick={handleSave} loading={saving}>
-          {saving ? 'Saving...' : 'Save All Changes'}
-        </Button>
+
+        <Group>
+          <Button variant="default" onClick={loadGroups}>
+            Reset
+          </Button>
+          <Button onClick={handleSave} loading={saving}>
+            {saving ? 'Saving...' : 'Save All Changes'}
+          </Button>
+        </Group>
       </Group>
 
       {/* Add Group Modal */}

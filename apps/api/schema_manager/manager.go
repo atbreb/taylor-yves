@@ -24,6 +24,10 @@ func NewSchemaManager(pool *pgxpool.Pool) *SchemaManager {
 
 // CreateTable creates a new user-defined table based on metadata
 func (sm *SchemaManager) CreateTable(ctx context.Context, req CreateTableRequest, createdBy string) (*TableDefinition, error) {
+	if sm.pool == nil {
+		return nil, fmt.Errorf("database not configured - please add DATABASE_URL_POOLED in Environment Settings")
+	}
+
 	// 1. Validate the request
 	if err := sm.validateCreateTableRequest(req); err != nil {
 		return nil, fmt.Errorf("validation failed: %w", err)
@@ -251,6 +255,10 @@ CREATE TRIGGER update_%s_updated_at
 
 // GetTable retrieves a table definition by ID
 func (sm *SchemaManager) GetTable(ctx context.Context, tableID int) (*TableDefinition, error) {
+	if sm.pool == nil {
+		return nil, fmt.Errorf("database not configured - please add DATABASE_URL_POOLED in Environment Settings")
+	}
+
 	// Query the table metadata
 	var tableDef TableDefinition
 	query := `
@@ -314,6 +322,10 @@ func (sm *SchemaManager) GetTable(ctx context.Context, tableID int) (*TableDefin
 
 // ListTables returns all user-defined tables
 func (sm *SchemaManager) ListTables(ctx context.Context) ([]TableDefinition, error) {
+	if sm.pool == nil {
+		return nil, fmt.Errorf("database not configured - please add DATABASE_URL_POOLED in Environment Settings")
+	}
+
 	query := `
 		SELECT id, name, table_name, description, created_at, updated_at
 		FROM configurable_tables

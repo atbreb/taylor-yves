@@ -70,6 +70,9 @@ service SchemaService {
 
   // Delete a user-defined table
   rpc DeleteTable(DeleteTableRequest) returns (DeleteTableResponse);
+
+  // Reload database connection (hot-reload after updating credentials)
+  rpc ReloadDatabase(ReloadDatabaseRequest) returns (ReloadDatabaseResponse);
 }
 
 // Column definition for creating tables
@@ -174,4 +177,16 @@ message DeleteTableRequest {
 message DeleteTableResponse {
   bool success = 1;
   string message = 2;
+}
+
+// Request to reload database connection
+message ReloadDatabaseRequest {
+  // Empty for now
+}
+
+// Response after reloading database
+message ReloadDatabaseResponse {
+  bool success = 1;
+  string message = 2;
+  optional string database_info = 3;  // Optional database version/info if connected
 }

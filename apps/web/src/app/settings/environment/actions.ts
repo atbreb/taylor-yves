@@ -119,6 +119,17 @@ export async function saveEnvironmentGroups(groups: EnvironmentGroup[]) {
       })
     })
 
+    // Automatically export to .env file so Go server can use them
+    // This runs asynchronously - we don't wait for it to complete
+    try {
+      const { exportToEnvFile } = await import('./export-actions')
+      exportToEnvFile().catch(err => {
+        console.error('Failed to auto-export to .env:', err)
+      })
+    } catch (err) {
+      console.error('Failed to load export module:', err)
+    }
+
     // For specific known variables, also set in cookies for client access
     const cookieStore = cookies()
     groups.forEach(group => {
@@ -267,23 +278,52 @@ export async function testConnection(connectionString: string): Promise<{ succes
   try {
     // Parse the connection string to validate format
     const url = new URL(connectionString)
-    
+
     if (!url.protocol.startsWith('postgresql:') && !url.protocol.startsWith('postgres:')) {
       return { success: false, message: 'Invalid PostgreSQL connection string' }
     }
 
-    // In a real implementation, you would actually test the connection
-    // For now, we'll just validate the format
-    if (url.hostname && url.pathname) {
-      return { 
-        success: true, 
-        message: `Connection string appears valid for ${url.hostname}${url.pathname}` 
+    console.log('🔌 Testing database connection format...')
+
+    // Validate connection string components
+    if (!url.hostname) {
+      return { success: false, message: 'Missing hostname in connection string' }
+    }
+
+    if (!url.pathname || url.pathname === '/') {
+      return { success: false, message: 'Missing database name in connection string' }
+    }
+
+    if (!url.username) {
+      return { success: false, message: 'Missing username in connection string' }
+    }
+
+    // Check if it's a Neon connection (recommended)
+    const isNeon = url.hostname.includes('neon.tech')
+    const isPooled = url.hostname.includes('-pooler')
+
+    console.log(`✅ Connection string validated: ${url.hostname}${url.pathname}`)
+
+    let message = `Connection string is valid for ${url.hostname}`
+    if (isNeon) {
+      message += ' (Neon PostgreSQL)'
+      if (isPooled) {
+        message += ' - Pooled connection ✓'
+      } else {
+        message += ' - Direct connection ✓'
       }
     }
 
-    return { success: false, message: 'Invalid connection string format' }
-  } catch (error) {
-    return { success: false, message: `Invalid URL format: ${error}` }
+    // Note: Actual connection testing happens when the Go server starts
+    message += '\n\nTo test the actual connection, click "Export to .env File" and restart your Go server.'
+
+    return {
+      success: true,
+      message
+    }
+  } catch (error: any) {
+    console.error('❌ Connection string validation failed:', error.message)
+    return { success: false, message: `Invalid URL format: ${error.message}` }
   }
 }
 

@@ -12,14 +12,19 @@ import (
 // SchemaServiceServer implements the SchemaService gRPC service
 type SchemaServiceServer struct {
 	pb.UnimplementedSchemaServiceServer
-	schemaManager *schema_manager.SchemaManager
+	dbManager *db.Manager
 }
 
 // NewSchemaServiceServer creates a new schema service server
-func NewSchemaServiceServer(database *db.DB) *SchemaServiceServer {
+func NewSchemaServiceServer(dbManager *db.Manager) *SchemaServiceServer {
 	return &SchemaServiceServer{
-		schemaManager: schema_manager.NewSchemaManager(database.Pool),
+		dbManager: dbManager,
 	}
+}
+
+// getSchemaManager returns a schema manager with the current database pool
+func (s *SchemaServiceServer) getSchemaManager() *schema_manager.SchemaManager {
+	return schema_manager.NewSchemaManager(s.dbManager.GetPool())
 }
 
 // CreateTable handles table creation requests
@@ -56,7 +61,7 @@ func (s *SchemaServiceServer) CreateTable(ctx context.Context, req *pb.CreateTab
 	}
 
 	// Call the schema manager
-	tableDef, err := s.schemaManager.CreateTable(ctx, createReq, "system") // TODO: Get actual user ID
+	tableDef, err := s.getSchemaManager().CreateTable(ctx, createReq, "system") // TODO: Get actual user ID
 	if err != nil {
 		return &pb.CreateTableResponse{
 			Success: false,
@@ -76,7 +81,7 @@ func (s *SchemaServiceServer) CreateTable(ctx context.Context, req *pb.CreateTab
 
 // GetTable retrieves a table definition
 func (s *SchemaServiceServer) GetTable(ctx context.Context, req *pb.GetTableRequest) (*pb.GetTableResponse, error) {
-	tableDef, err := s.schemaManager.GetTable(ctx, int(req.TableId))
+	tableDef, err := s.getSchemaManager().GetTable(ctx, int(req.TableId))
 	if err != nil {
 		return &pb.GetTableResponse{
 			Success: false,
@@ -95,7 +100,7 @@ func (s *SchemaServiceServer) GetTable(ctx context.Context, req *pb.GetTableRequ
 
 // ListTables returns all user-defined tables
 func (s *SchemaServiceServer) ListTables(ctx context.Context, req *pb.ListTablesRequest) (*pb.ListTablesResponse, error) {
-	tables, err := s.schemaManager.ListTables(ctx)
+	tables, err := s.getSchemaManager().ListTables(ctx)
 	if err != nil {
 		return &pb.ListTablesResponse{
 			Success: false,
@@ -141,6 +146,41 @@ func (s *SchemaServiceServer) DeleteTable(ctx context.Context, req *pb.DeleteTab
 	return &pb.DeleteTableResponse{
 		Success: false,
 		Message: "Table deletion not yet implemented",
+	}, nil
+}
+
+// ReloadDatabase reloads the database connection from updated environment variables
+func (s *SchemaServiceServer) ReloadDatabase(ctx context.Context, req *pb.ReloadDatabaseRequest) (*pb.ReloadDatabaseResponse, error) {
+	// Reload the database connection
+	if err := s.dbManager.Reload(); err != nil {
+		return &pb.ReloadDatabaseResponse{
+			Success: false,
+			Message: fmt.Sprintf("Failed to reload database: %v", err),
+		}, nil
+	}
+
+	// Get database info to confirm connection
+	dbInfo, err := s.dbManager.GetDatabaseInfo(ctx)
+	if err != nil {
+		return &pb.ReloadDatabaseResponse{
+			Success: true,
+			Message: "Database connection reloaded, but failed to get version info",
+		}, nil
+	}
+
+	// Extract short version (first two words)
+	shortVersion := dbInfo
+	if len(dbInfo) > 50 {
+		words := []rune(dbInfo)
+		if len(words) > 50 {
+			shortVersion = string(words[:50]) + "..."
+		}
+	}
+
+	return &pb.ReloadDatabaseResponse{
+		Success:      true,
+		Message:      "Database connection reloaded successfully",
+		DatabaseInfo: &shortVersion,
 	}, nil
 }
 

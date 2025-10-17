@@ -28,20 +28,21 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
-	// Initialize database connection (using pooled connection for runtime)
-	database, err := db.NewConnection(cfg.DatabaseURLPooled)
-	if err != nil {
+	// Initialize database manager
+	dbManager := db.GetManager()
+
+	// Try to initialize database connection
+	if err := dbManager.Initialize(cfg.DatabaseURLPooled, cfg.DatabaseURLDirect); err != nil {
 		log.Printf("Warning: Failed to connect to database: %v", err)
 		// Continue without database for now
-		database = &db.DB{}
 	} else {
-		defer database.Close()
+		defer dbManager.Close()
 
 		// Run database migrations
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		if err := migrations.RunMigrations(ctx, database.Pool); err != nil {
+		if err := migrations.RunMigrations(ctx, dbManager.GetPool()); err != nil {
 			log.Printf("Warning: Failed to run migrations: %v", err)
 			// Continue even if migrations fail (for development)
 		}
@@ -49,10 +50,10 @@ func main() {
 
 	// Setup Gin router
 	router := gin.Default()
-	
+
 	// Health check endpoint
 	router.GET("/health", handlers.HealthCheck)
-	
+
 	// Create HTTP server
 	httpServer := &http.Server{
 		Addr:    cfg.HTTPPort,
@@ -61,7 +62,7 @@ func main() {
 
 	// Create gRPC server
 	grpcServer := grpc.NewServer()
-	grpc_server.RegisterServices(grpcServer, database)
+	grpc_server.RegisterServices(grpcServer, dbManager)
 
 	// Register reflection service on gRPC server for grpcurl
 	reflection.Register(grpcServer)

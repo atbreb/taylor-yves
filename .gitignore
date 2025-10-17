@@ -102,3 +102,6 @@ bin/
 # Temporary files
 tmp/
 temp/
+
+# Random folders
+images/

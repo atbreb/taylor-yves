@@ -25,9 +25,9 @@ func NewServer(database *db.DB) *Server {
 }
 
 // RegisterServices registers all gRPC services with the server
-func RegisterServices(grpcServer *grpc.Server, database *db.DB) {
+func RegisterServices(grpcServer *grpc.Server, dbManager *db.Manager) {
 	// Register the Schema Management Service
-	schemaService := NewSchemaServiceServer(database)
+	schemaService := NewSchemaServiceServer(dbManager)
 	pb.RegisterSchemaServiceServer(grpcServer, schemaService)
 
 	log.Println("gRPC services registered (SchemaService active)")

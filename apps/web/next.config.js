@@ -9,6 +9,7 @@ const nextConfig = {
         },
       },
     },
+    serverComponentsExternalPackages: ['pg'],
   },
   transpilePackages: [],
   images: {
