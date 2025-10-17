@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["go_1_22", "protobuf", "protoc-gen-go", "protoc-gen-go-grpc"]
+
+[phases.build]
+cmds = [
+  "go mod download",
+  "go build -o main ."
+]
+
+[start]
+cmd = "./main"
