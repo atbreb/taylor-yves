@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { NavLink, Avatar, Group, Text, Stack, ActionIcon, Drawer, UnstyledButton, AppShell } from '@mantine/core'
-import { IconHome, IconSettings, IconX, IconUser } from '@tabler/icons-react'
+import { IconHome, IconSettings, IconX, IconUser, IconDatabase } from '@tabler/icons-react'
 
 interface SidebarProps {
   isOpen: boolean
@@ -15,6 +15,11 @@ const navigationItems = [
     name: 'Dashboard',
     href: '/dashboard',
     icon: IconHome
+  },
+  {
+    name: 'Schema',
+    href: '/settings/schema/tables',
+    icon: IconDatabase
   },
   {
     name: 'Settings',
