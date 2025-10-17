@@ -1,0 +1,41 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**", "bin/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "clean": {
+      "cache": false
+    },
+    "format": {
+      "outputs": []
+    },
+    "go:build": {
+      "dependsOn": ["^go:build"],
+      "outputs": ["bin/**", "*.exe"]
+    },
+    "go:test": {
+      "dependsOn": ["go:build"],
+      "outputs": ["coverage.out"]
+    },
+    "go:lint": {
+      "outputs": []
+    },
+    "proto:generate": {
+      "outputs": ["**/*.pb.go", "**/*_pb.ts", "**/*_pb.js"]
+    }
+  }
+}

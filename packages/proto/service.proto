@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "agentic-template/api/pb";
+
+// AgentService provides AI agent functionality with streaming responses
+service AgentService {
+  // StreamAgentResponse takes a user query and streams back the agent's
+  // thoughts, tool usage, and final response in real-time
+  rpc StreamAgentResponse(AgentRequest) returns (stream AgentResponse);
+}
+
+// AgentRequest contains the user's input query
+message AgentRequest {
+  string query = 1;
+  // Optional: conversation ID for maintaining context
+  string conversation_id = 2;
+  // Optional: additional context or parameters
+  map<string, string> metadata = 3;
+}
+
+// AgentResponse streams different types of events back to the client
+message AgentResponse {
+  // Use oneof to support different event types in the stream
+  oneof event {
+    // Text chunk from the agent's response
+    string chunk = 1;
+    // Tool call information
+    ToolCall tool_call = 2;
+    // Thinking/reasoning from the agent
+    string thought = 3;
+    // Error message if something goes wrong
+    string error = 4;
+    // Indicates the end of the stream
+    bool done = 5;
+  }
+  // Timestamp for the event
+  int64 timestamp = 6;
+}
+
+// ToolCall represents an intermediate step where the agent uses a tool
+message ToolCall {
+  // Name of the tool being called
+  string tool_name = 1;
+  // Input provided to the tool
+  string tool_input = 2;
+  // Output received from the tool
+  string tool_output = 3;
+  // Status of the tool call (pending, success, error)
+  string status = 4;
+}

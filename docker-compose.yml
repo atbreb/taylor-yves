@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # Go API Service
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"   # HTTP port
+      - "50051:50051" # gRPC port
+    environment:
+      - HTTP_PORT=:8080
+      - GO_API_PORT=:50051
+      - ENVIRONMENT=development
+      - DATABASE_URL_POOLED=${DATABASE_URL_POOLED}
+      - DATABASE_URL_DIRECT=${DATABASE_URL_DIRECT}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - META_API_KEY=${META_API_KEY}
+      - LOG_LEVEL=debug
+      - ENABLE_CORS=true
+    env_file:
+      - .env
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Next.js Web Application
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:3000
+      - NEXT_PUBLIC_GRPC_URL=http://api:50051
+      - GRPC_URL=api:50051
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-default-key-change-in-production}
+    env_file:
+      - .env
+    depends_on:
+      - api
+    networks:
+      - app-network
+
+  # Optional: Local PostgreSQL for development
+  # Uncomment if you want to use local PostgreSQL instead of Neon
+  # postgres:
+  #   image: postgres:15-alpine
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - POSTGRES_DB=agentic_template
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - app-network
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
