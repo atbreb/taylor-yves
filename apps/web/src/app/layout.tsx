@@ -7,11 +7,11 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Taylor-Yves',
-    template: '%s | Taylor-Yves',
+    default: 'Taylor Yves | Frictionless Consulting',
+    template: '%s | Taylor Yves',
   },
   description: 'A smoother way to work is on its way.',
-  keywords: ['Taylor-Yves', 'productivity', 'workflow'],
+  keywords: ['Taylor-Yves', 'productivity', 'workflow', 'consulting', 'frictionless'],
   authors: [
     {
       name: 'Taylor-Yves Team',
@@ -19,17 +19,20 @@ export const metadata: Metadata = {
   ],
   creator: 'Taylor-Yves',
   metadataBase: new URL('http://localhost:3000'),
+  icons: {
+    icon: '/favicon.ico',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'http://localhost:3000',
-    title: 'Taylor-Yves',
+    title: 'Taylor Yves | Frictionless Consulting',
     description: 'A smoother way to work is on its way.',
-    siteName: 'Taylor-Yves',
+    siteName: 'Taylor Yves',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Taylor-Yves',
+    title: 'Taylor Yves | Frictionless Consulting',
     description: 'A smoother way to work is on its way.',
     creator: '@taylor_yves',
   },

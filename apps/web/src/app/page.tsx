@@ -56,11 +56,15 @@ export default function SplashPage() {
           <Box
             component="h1"
             style={{
-              fontSize: '1.5rem',
-              fontWeight: 400,
+              fontSize: '0.875rem',
+              fontWeight: 300,
+              fontStyle: 'italic',
               textAlign: 'center',
               margin: 0,
+              marginTop: '-1rem',
               color: 'var(--mantine-color-text)',
+              fontFamily: 'Georgia, "Times New Roman", Times, serif',
+              letterSpacing: '0.05em',
             }}
           >
             A smoother way to work is on its way.
