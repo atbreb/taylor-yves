@@ -18,6 +18,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -61,6 +62,9 @@ func main() {
 	// Create gRPC server
 	grpcServer := grpc.NewServer()
 	grpc_server.RegisterServices(grpcServer, database)
+
+	// Register reflection service on gRPC server for grpcurl
+	reflection.Register(grpcServer)
 
 	// Start gRPC server in a goroutine
 	go func() {

@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"agentic-template/api/db"
+	"agentic-template/api/pb"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -25,24 +26,18 @@ func NewServer(database *db.DB) *Server {
 
 // RegisterServices registers all gRPC services with the server
 func RegisterServices(grpcServer *grpc.Server, database *db.DB) {
-	server := NewServer(database)
-
-	// Register the Agent Service
-	// Note: This will be registered from agent_service.go
-	// pb.RegisterAgentServiceServer(grpcServer, agentService)
-
 	// Register the Schema Management Service
-	// schemaService := NewSchemaServiceServer(database)
-	// pb.RegisterSchemaServiceServer(grpcServer, schemaService)
+	schemaService := NewSchemaServiceServer(database)
+	pb.RegisterSchemaServiceServer(grpcServer, schemaService)
 
-	log.Println("gRPC services registered")
+	log.Println("gRPC services registered (SchemaService active)")
 }
 
 // Example health check method for gRPC
 func (s *Server) HealthCheck(ctx context.Context, req interface{}) (interface{}, error) {
-	if err := s.db.HealthCheck(); err != nil {
+	if err := s.db.Health(ctx); err != nil {
 		return nil, status.Errorf(codes.Unavailable, "database health check failed: %v", err)
 	}
-	
+
 	return map[string]string{"status": "healthy"}, nil
 }
