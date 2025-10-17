@@ -26,11 +26,15 @@ func NewServer(database *db.DB) *Server {
 // RegisterServices registers all gRPC services with the server
 func RegisterServices(grpcServer *grpc.Server, database *db.DB) {
 	server := NewServer(database)
-	
+
 	// Register the Agent Service
 	// Note: This will be registered from agent_service.go
 	// pb.RegisterAgentServiceServer(grpcServer, agentService)
-	
+
+	// Register the Schema Management Service
+	// schemaService := NewSchemaServiceServer(database)
+	// pb.RegisterSchemaServiceServer(grpcServer, schemaService)
+
 	log.Println("gRPC services registered")
 }
 

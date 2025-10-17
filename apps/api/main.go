@@ -12,6 +12,7 @@ import (
 
 	"agentic-template/api/config"
 	"agentic-template/api/db"
+	"agentic-template/api/db/migrations"
 	"agentic-template/api/grpc_server"
 	"agentic-template/api/handlers"
 
@@ -34,6 +35,15 @@ func main() {
 		database = &db.DB{}
 	} else {
 		defer database.Close()
+
+		// Run database migrations
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := migrations.RunMigrations(ctx, database.Pool); err != nil {
+			log.Printf("Warning: Failed to run migrations: %v", err)
+			// Continue even if migrations fail (for development)
+		}
 	}
 
 	// Setup Gin router

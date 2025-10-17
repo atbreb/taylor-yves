@@ -50,3 +50,128 @@ message ToolCall {
   // Status of the tool call (pending, success, error)
   string status = 4;
 }
+
+// ====================================================================
+// SchemaService - Dynamic table and schema management
+// ====================================================================
+
+service SchemaService {
+  // Create a new user-defined table
+  rpc CreateTable(CreateTableRequest) returns (CreateTableResponse);
+
+  // Get details of a specific table
+  rpc GetTable(GetTableRequest) returns (GetTableResponse);
+
+  // List all user-defined tables
+  rpc ListTables(ListTablesRequest) returns (ListTablesResponse);
+
+  // Get information about available data types
+  rpc GetDataTypes(GetDataTypesRequest) returns (GetDataTypesResponse);
+
+  // Delete a user-defined table
+  rpc DeleteTable(DeleteTableRequest) returns (DeleteTableResponse);
+}
+
+// Column definition for creating tables
+message ColumnDefinition {
+  string name = 1;                          // User-friendly name
+  string data_type = 2;                     // text, number, decimal, boolean, date, json, relation
+  bool is_nullable = 3;                     // Can this column be null?
+  bool is_unique = 4;                       // Must values be unique?
+  optional string default_value = 5;        // Default value as string
+  optional int32 foreign_key_to_table_id = 6; // For relations
+}
+
+// Request to create a new table
+message CreateTableRequest {
+  string name = 1;                          // User-friendly table name
+  optional string description = 2;          // Optional description
+  repeated ColumnDefinition columns = 3;    // List of columns
+}
+
+// Response after creating a table
+message CreateTableResponse {
+  bool success = 1;
+  string message = 2;
+  optional TableDefinition table = 3;       // The created table
+}
+
+// Table definition (full structure)
+message TableDefinition {
+  int32 id = 1;
+  string name = 2;                          // User-friendly name
+  string table_name = 3;                    // Internal database name
+  optional string description = 4;
+  repeated ColumnDetail columns = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+// Detailed column information
+message ColumnDetail {
+  int32 id = 1;
+  string name = 2;                          // User-friendly name
+  string column_name = 3;                   // Internal database name
+  string data_type = 4;                     // User-friendly type
+  string postgres_type = 5;                 // Actual PostgreSQL type
+  bool is_nullable = 6;
+  bool is_unique = 7;
+  optional string default_value = 8;
+  optional int32 foreign_key_to_table_id = 9;
+  optional string foreign_key_to_table_name = 10;
+  int32 display_order = 11;
+}
+
+// Request to get a specific table
+message GetTableRequest {
+  int32 table_id = 1;
+}
+
+// Response with table details
+message GetTableResponse {
+  bool success = 1;
+  string message = 2;
+  optional TableDefinition table = 3;
+}
+
+// Request to list all tables
+message ListTablesRequest {
+  // Empty for now, can add filters later
+}
+
+// Response with list of tables
+message ListTablesResponse {
+  bool success = 1;
+  string message = 2;
+  repeated TableDefinition tables = 3;
+}
+
+// Request to get available data types
+message GetDataTypesRequest {
+  // Empty for now
+}
+
+// Information about a data type
+message DataTypeInfo {
+  string type = 1;                          // Internal type name
+  string display_name = 2;                  // Human-readable name
+  string description = 3;                   // What it's used for
+  string postgres_type = 4;                 // PostgreSQL type it maps to
+}
+
+// Response with available data types
+message GetDataTypesResponse {
+  bool success = 1;
+  repeated DataTypeInfo data_types = 2;
+}
+
+// Request to delete a table
+message DeleteTableRequest {
+  int32 table_id = 1;
+}
+
+// Response after deleting a table
+message DeleteTableResponse {
+  bool success = 1;
+  string message = 2;
+}
