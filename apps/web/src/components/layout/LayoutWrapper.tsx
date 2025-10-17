@@ -13,6 +13,14 @@ interface LayoutWrapperProps {
 export function LayoutWrapper({ children }: LayoutWrapperProps) {
   const pathname = usePathname()
 
+  // Check if we're on the splash page (root)
+  const isSplashPage = pathname === '/'
+
+  // If splash page, render without any layout
+  if (isSplashPage) {
+    return <>{children}</>
+  }
+
   // Check if we're on a dashboard route
   const isDashboardRoute = pathname?.startsWith('/dashboard') ||
                           pathname?.startsWith('/analytics') ||

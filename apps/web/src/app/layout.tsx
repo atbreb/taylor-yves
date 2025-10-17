@@ -7,31 +7,31 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: {
-    default: 'Agentic Template',
-    template: '%s | Agentic Template',
+    default: 'Taylor-Yves',
+    template: '%s | Taylor-Yves',
   },
-  description: 'A modern agentic template with Next.js, TypeScript, and gRPC',
-  keywords: ['Next.js', 'TypeScript', 'gRPC', 'Tailwind CSS', 'Agentic'],
+  description: 'A smoother way to work is on its way.',
+  keywords: ['Taylor-Yves', 'productivity', 'workflow'],
   authors: [
     {
-      name: 'Agentic Template Team',
+      name: 'Taylor-Yves Team',
     },
   ],
-  creator: 'Agentic Template',
+  creator: 'Taylor-Yves',
   metadataBase: new URL('http://localhost:3000'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'http://localhost:3000',
-    title: 'Agentic Template',
-    description: 'A modern agentic template with Next.js, TypeScript, and gRPC',
-    siteName: 'Agentic Template',
+    title: 'Taylor-Yves',
+    description: 'A smoother way to work is on its way.',
+    siteName: 'Taylor-Yves',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Agentic Template',
-    description: 'A modern agentic template with Next.js, TypeScript, and gRPC',
-    creator: '@agentic_template',
+    title: 'Taylor-Yves',
+    description: 'A smoother way to work is on its way.',
+    creator: '@taylor_yves',
   },
   robots: {
     index: true,
