@@ -19,9 +19,6 @@ export const metadata: Metadata = {
   ],
   creator: 'Taylor-Yves',
   metadataBase: new URL('http://localhost:3000'),
-  icons: {
-    icon: '/favicon.ico',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
