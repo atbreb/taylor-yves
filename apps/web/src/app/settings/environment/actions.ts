@@ -403,3 +403,41 @@ export async function getEnvironmentVariable(key: string): Promise<string | null
     return null
   }
 }
+
+/**
+ * Get all environment variables as a flat list (for Railway sync)
+ */
+export async function getEnvironmentVariables(): Promise<{
+  success: boolean
+  variables?: Array<{ key: string; value: string }>
+  error?: string
+}> {
+  try {
+    const groups = await getEnvironmentGroups()
+
+    // Flatten all variables from all groups
+    const allVariables: Array<{ key: string; value: string }> = []
+
+    for (const group of groups) {
+      for (const variable of group.variables) {
+        if (variable.value) { // Only include variables with values
+          allVariables.push({
+            key: variable.key,
+            value: variable.value
+          })
+        }
+      }
+    }
+
+    return {
+      success: true,
+      variables: allVariables
+    }
+  } catch (error) {
+    console.error('Failed to get environment variables:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    }
+  }
+}
