@@ -2,9 +2,13 @@
 
 import { Stack, Center, Box } from '@mantine/core'
 import Image from 'next/image'
+import { useComputedColorScheme } from '@mantine/core'
 import { ThemeToggle } from '@/components/theme/ThemeToggle'
 
 export default function SplashPage() {
+  const computedColorScheme = useComputedColorScheme('light', { getInitialValueInEffect: true })
+  const isDark = computedColorScheme === 'dark'
+
   return (
     <Box
       style={{
@@ -30,18 +34,19 @@ export default function SplashPage() {
       {/* Centered Content */}
       <Center style={{ width: '100%', height: '100vh' }}>
         <Stack align="center" gap="xl">
-          {/* Logo */}
+          {/* Logo - changes based on theme */}
           <Box
             style={{
-              width: 200,
-              height: 200,
+              width: 349,
+              height: 333,
               position: 'relative',
             }}
           >
             <Image
-              src="/Y.png"
+              src={isDark ? '/ty-white.png' : '/ty-black.png'}
               alt="Taylor-Yves Logo"
-              fill
+              width={349}
+              height={333}
               style={{ objectFit: 'contain' }}
               priority
             />
