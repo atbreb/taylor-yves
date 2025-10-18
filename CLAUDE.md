@@ -150,6 +150,65 @@ Performs comprehensive code review, refactoring, and test writing for the work s
 - Catch errors before they reach production
 - Leave codebase in better shape than you found it
 
+## Code Quality & File Management Guidelines
+
+### File Naming & Versioning
+
+**NEVER create iterations of files** like `file-v2.ts`, `file-new.ts`, `file-simple.ts`, etc.
+
+When refactoring or rewriting a file:
+
+1. **Archive the original** (if needed for reference):
+   ```bash
+   # Move to archive directory with timestamp
+   mkdir -p .archive/YYYY-MM-DD
+   mv path/to/file.ts .archive/YYYY-MM-DD/file.ts
+   ```
+
+2. **Create new file with standard name**:
+   - Write the new implementation
+   - Use the EXACT same filename as the original
+   - Maintain consistent file structure
+
+3. **Document the change**:
+   - Add entry to commit message explaining the rewrite
+   - Update relevant documentation
+   - Note any breaking changes
+
+**Example workflow**:
+```bash
+# Archiving complex test file before replacement
+mkdir -p .archive/2025-10-17
+mv apps/web/src/app/settings/environment/__tests__/actions.test.ts \
+   .archive/2025-10-17/actions.test.complex.ts
+
+# Create new simplified version with original name
+# (write new file as actions.test.ts)
+```
+
+### Why This Matters
+
+- **Clean codebase**: No clutter from `-v2`, `-new`, `-simple` suffixes
+- **Consistent imports**: File paths never change, imports stay valid
+- **Clear history**: Git history shows the evolution, not filename variations
+- **Professional standard**: Production codebases don't have versioned filenames
+
+### Testing Standards
+
+All tests must pass before committing:
+- **100% pass rate required** - No failing tests allowed in commits
+- Tests should be reliable and deterministic
+- Mock external dependencies (filesystem, network, databases)
+- If mocking becomes too complex, simplify the test scope
+- Focus on testing business logic, not implementation details
+
+### Commit Quality
+
+- Run full test suite before committing: `pnpm test`
+- Ensure build succeeds: `pnpm build`
+- Check for TypeScript errors: `pnpm type-check`
+- Use descriptive commit messages with context
+
 ## Notes for Future Development
 
 - The gRPC protobuf files need to be generated using `protoc` command
