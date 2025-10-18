@@ -311,7 +311,7 @@ export async function triggerRailwayDeployment(
 /**
  * Escape special characters for GraphQL strings
  */
-function escapeGraphQL(str: string): string {
+export function escapeGraphQL(str: string): string {
   return str
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
