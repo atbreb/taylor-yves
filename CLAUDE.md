@@ -91,6 +91,65 @@ All core features have been implemented:
 - ✅ Mantine UI with dark/light theme support
 - ✅ Comprehensive documentation
 
+## Custom Slash Commands
+
+This project has custom slash commands to enhance development workflow.
+
+### `/learning-mode` - Educational Documentation Generator
+
+Generates educational documentation as you work, creating materials in `DOCS/LEARNING/`.
+
+**When to use**: Before starting work on a feature or fix when you want to create learning materials.
+
+**What it does**:
+- Creates educational materials that explain core concepts using analogies and storytelling
+- Documents architectural decisions and trade-offs
+- Shows how components connect within the larger system
+- Includes practical examples with annotated code
+- Adds reflection questions to deepen understanding
+
+**Output**: Markdown files in `DOCS/LEARNING/` with naming convention `YYYY-MM-DD-{topic-slug}.md`
+
+**Benefits**:
+- Build intuitive understanding of complex technical concepts
+- Create a knowledge base of implementation patterns
+- Onboard new developers with context-rich explanations
+- Document the "why" behind code decisions, not just the "what"
+
+---
+
+### `/eod` - End of Day Cleanup & Quality Check
+
+Performs comprehensive code review, refactoring, and test writing for the work session.
+
+**When to use**: After completing a chunk of work that's ready for cleanup and testing.
+
+**What it does**:
+1. **Code Review & Refactoring**
+   - Reviews all modified files from git diff
+   - Refactors for performance, efficiency, and code quality
+   - Identifies and fixes obvious errors or missteps
+   - Removes debug code, improves naming, applies DRY principle
+
+2. **Unit Testing**
+   - Writes comprehensive unit tests for new functionality
+   - Tests both success and error paths
+   - Mocks external dependencies
+   - Ensures tests pass and provides coverage metrics
+
+3. **Final Checks**
+   - Runs build and type checking
+   - Runs linting and formatting
+   - Reviews git status for unintended changes
+
+**Output**: Detailed summary report showing refactoring changes, tests written, issues fixed, and build status.
+
+**Benefits**:
+- Lock in functionality with tests to prevent future breakage
+- Improve code quality through systematic refactoring
+- Catch errors before they reach production
+- Leave codebase in better shape than you found it
+
 ## Notes for Future Development
 
 - The gRPC protobuf files need to be generated using `protoc` command

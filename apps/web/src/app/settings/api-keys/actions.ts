@@ -16,16 +16,43 @@ interface ApiKeyConfig {
 // Simple encryption/decryption for demo purposes
 // In production, use a proper KMS or secret management service
 function encrypt(text: string): string {
-  const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY)
+  // Use AES-256-GCM for authenticated encryption
+  // Generate a random IV for each encryption
+  const iv = crypto.randomBytes(16)
+
+  // Derive a key from the encryption key
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
   let encrypted = cipher.update(text, 'utf8', 'hex')
   encrypted += cipher.final('hex')
-  return encrypted
+
+  // Get the auth tag
+  const authTag = cipher.getAuthTag()
+
+  // Return iv:authTag:encrypted
+  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`
 }
 
 function decrypt(text: string): string {
   try {
-    const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY)
-    let decrypted = decipher.update(text, 'hex', 'utf8')
+    // Split the stored value
+    const parts = text.split(':')
+    if (parts.length !== 3) {
+      return ''
+    }
+
+    const iv = Buffer.from(parts[0], 'hex')
+    const authTag = Buffer.from(parts[1], 'hex')
+    const encrypted = parts[2]
+
+    // Derive the same key
+    const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32)
+
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv)
+    decipher.setAuthTag(authTag)
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8')
     decrypted += decipher.final('utf8')
     return decrypted
   } catch {
